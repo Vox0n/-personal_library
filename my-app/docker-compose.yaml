@@ -1,0 +1,48 @@
+services:
+  nginx-proxy:
+    image: nginxproxy/nginx-proxy
+    container_name: nginx-proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/tmp/docker.sock:ro
+      - certs:/etc/nginx/certs:ro
+      - vhost.d:/etc/nginx/vhost.d
+      - html:/usr/share/nginx/html
+    networks:
+      - webnet
+
+  acme-companion:
+    image: nginxproxy/acme-companion
+    container_name: acme-companion
+    volumes_from:
+      - nginx-proxy
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - acme:/etc/acme.sh
+    networks:
+      - webnet
+
+  app:
+    build: .
+    container_name: bookshelf_app
+    ports:
+      - "5000:5000"
+    environment:
+      - VIRTUAL_HOST=assmi.duckdns.org
+      - VIRTUAL_PORT=5000
+      - LETSENCRYPT_HOST=assmi.duckdns.org
+      - LETSENCRYPT_EMAIL=your_email@example.com
+    volumes:
+      - ./data:/app/data
+    networks:
+      - webnet
+
+networks:
+  webnet:
+volumes:
+  certs:
+  vhost.d:
+  html:
+  acme:
